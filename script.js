@@ -1,85 +1,116 @@
-const cells = document.querySelectorAll(".cell");
-const statusText = document.querySelector("#statusText");
-const restartBtn = document.querySelector("#restartBtn");
-const winConditions = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-];
+const Gameboard = (() => {
+  let boardState = Array(9).fill("");
 
-let boardState = Array(9).fill("");
-let currentPlayer = "X";
-let running = false;
+  const getCell = (index) => boardState[index];
+  const setCell = (index, player) => {
+    boardState[index] = player;
+  };
+  const resetBoard = () => {
+    boardState.fill("");
+  };
 
-initializeGame();
+  return { getCell, setCell, resetBoard, boardState };
+})();
 
-function initializeGame() {
-  cells.forEach((cell) => cell.addEventListener("click", cellClicked));
-  restartBtn.addEventListener("click", restartGame);
-  statusText.textContent = `${currentPlayer}'s turn`;
-  running = true;
-}
+const DisplayController = (() => {
+  const cells = document.querySelectorAll(".cell");
+  const statusText = document.querySelector("#statusText");
 
-function cellClicked() {
-  const cellIndex = this.getAttribute("cellIndex");
+  const updateStatus = (message) => {
+    statusText.textContent = message;
+  };
 
-  if (boardState[cellIndex] != "" || !running) {
-    return;
-  }
+  const clearBoard = () => {
+    cells.forEach((cell) => (cell.textContent = ""));
+  };
 
-  updateCell(this, cellIndex);
-  checkWinner();
-}
+  const renderBoard = () => {
+    cells.forEach((cell, index) => {
+      cell.textContent = Gameboard.getCell(index);
+    });
+  };
 
-function updateCell(cell, index) {
-  boardState[index] = currentPlayer;
-  cell.textContent = currentPlayer;
-}
+  return { updateStatus, clearBoard, renderBoard, cells };
+})();
 
-function changePlayer() {
-  currentPlayer = currentPlayer == "X" ? "O" : "X";
-  statusText.textContent = `${currentPlayer}'s turn`;
-}
+const GameController = (() => {
+  const winConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
 
-function checkWinner() {
-  let roundWon = false;
+  let currentPlayer = "X";
+  let running = false;
 
-  for (let i = 0; i < winConditions.length; i++) {
-    const condition = winConditions[i];
-    const cellA = boardState[condition[0]];
-    const cellB = boardState[condition[1]];
-    const cellC = boardState[condition[2]];
+  const initializeGame = () => {
+    DisplayController.cells.forEach((cell) =>
+      cell.addEventListener("click", cellClicked)
+    );
+    document
+      .querySelector("#restartBtn")
+      .addEventListener("click", restartGame);
+    DisplayController.updateStatus(`${currentPlayer}'s turn`);
+    running = true;
+  };
 
-    if (cellA == "" || cellB == "" || cellC == "") {
-      continue;
+  const cellClicked = (e) => {
+    const cellIndex = e.target.getAttribute("cellIndex");
+
+    if (Gameboard.getCell(cellIndex) !== "" || !running) {
+      return;
     }
 
-    if (cellA == cellB && cellB == cellC) {
-      roundWon = true;
-      break;
+    Gameboard.setCell(cellIndex, currentPlayer);
+    DisplayController.renderBoard();
+    checkWinner();
+  };
+
+  const changePlayer = () => {
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+    DisplayController.updateStatus(`${currentPlayer}'s turn`);
+  };
+
+  const checkWinner = () => {
+    let roundWon = false;
+
+    for (let condition of winConditions) {
+      const [a, b, c] = condition;
+      const cellA = Gameboard.getCell(a);
+      const cellB = Gameboard.getCell(b);
+      const cellC = Gameboard.getCell(c);
+
+      if (cellA && cellA === cellB && cellA === cellC) {
+        roundWon = true;
+        break;
+      }
     }
-  }
 
-  if (roundWon) {
-    statusText.textContent = `${currentPlayer} wins!`;
-    running = false;
-  } else if (!boardState.includes("")) {
-    statusText.textContent = `Draw!`;
-    running = false;
-  } else {
-    changePlayer();
-  }
-}
+    if (roundWon) {
+      DisplayController.updateStatus(`${currentPlayer} wins!`);
+      running = false;
+    } else if (!Gameboard.boardState.includes("")) {
+      DisplayController.updateStatus("Draw!");
+      running = false;
+    } else {
+      changePlayer();
+    }
+  };
 
-function restartGame() {
-  currentPlayer = "X";
-  boardState = ["", "", "", "", "", "", "", "", ""];
-  statusText.textContent = `${currentPlayer}'s turn`;
-  cells.forEach((cell) => (cell.textContent = ""));
-  running = true;
-}
+  const restartGame = () => {
+    currentPlayer = "X";
+    Gameboard.resetBoard();
+    DisplayController.clearBoard();
+    DisplayController.updateStatus(`${currentPlayer}'s turn`);
+    running = true;
+  };
+
+  return { initializeGame };
+})();
+
+GameController.initializeGame();
